@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta e Gestão de Materiais</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="h-full text-slate-800 flex flex-col bg-slate-50 antialiased">
+
+    <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+
+                <div class="flex items-center space-x-3">
+                    <div class="bg-blue-600 text-white p-2.5 rounded-lg shadow-sm flex items-center justify-center">
+                        <i class="fa-solid fa-boxes-stacked text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-lg tracking-tight text-white block leading-none">LogiCore</span>
+                        <span class="text-xs text-slate-400 font-medium">Gestão Integrada de Materiais</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <button id="btnNewMovementHeader" onclick="openNewMovementModal()" class="hidden sm:inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                        <i class="fa-solid fa-right-left"></i>
+                        <span>Registrar Movimentação</span>
+                    </button>
+                    <div class="h-6 w-px bg-slate-700 hidden sm:block"></div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-sm font-bold text-blue-400">
+                            OP
+                        </div>
+                        <div class="hidden md:block text-left">
+                            <p class="text-xs font-medium text-slate-200 leading-tight">Operador Logístico</p>
+                            <p class="text-[10px] text-slate-400">Matriz SP - 8042</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                    <i class="fa-solid fa-cubes text-2xl"></i>
+                </div>
+
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de SKUs</p>
+                    <h3 id="statTotalSKUs" class="text-2xl font-bold text-slate-900">0</h3>
+                </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+                    <i class="fa-solid fa-circle-check text-2xl"></i>
+                </div>
+
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estoque Regular</p>
+                    <h3 id="statRegular" class="text-2xl font-bold text-emerald-600">0</h3>
+                </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-amber-50 text-amber-600 rounded-lg">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Est. Baixo</p>
+                    <h3 id="statLow" class="text-2xl font-bold text-amber-600">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-rose-50 text-rose-600 rounded-lg">
+                    <i class="fa-solid fa-circle-xmark text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sem Estoque / Crítico</p>
+                    <h3 id="statCritical" class="text-2xl font-bold text-rose-600">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <section class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+                <!-- Search Box -->
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                    <input type="text" id="searchInput" oninput="handleSearchInput()" placeholder="Pesquisar por Código (SKU) ou Descrição do material..." class="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block transition">
+                    <button id="btnClearSearch" onclick="clearSearchText()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                    <button onclick="openNewMovementModal()" class="sm:hidden flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium">
+                        <i class="fa-solid fa-right-left"></i> Movimentação
+                    </button>
+                    <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+                        <button id="btnViewTable" onclick="setViewMode('table')" class="p-2 rounded-md text-sm font-medium transition text-blue-600 bg-white shadow-xs">
+                            <i class="fa-solid fa-table-list"></i>
+                        </button>
+                        <button id="btnViewGrid" onclick="setViewMode('grid')" class="p-2 rounded-md text-sm font-medium transition text-slate-600 hover:text-slate-900">
+                            <i class="fa-solid fa-border-all"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-slate-100">
+                <div>
+                    <label for="filterPlant" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Planta / Unidade</label>
+                    <select id="filterPlant" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="All">Todas as Plantas</option>
+                        <option value="SP">Planta SP - Matriz</option>
+                        <option value="RJ">Planta RJ - Fabril</option>
+                        <option value="MG">Planta MG - Logística</option>
+                        <option value="RS">Planta RS - Sul</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="filterCategory" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Categoria</label>
+                    <select id="filterCategory" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="All">Todas as Categorias</option>
+                        <option value="Peças Mecânicas">Peças Mecânicas</option>
+                        <option value="Componentes Eletrônicos">Componentes Eletrônicos</option>
+                        <option value="EPIs">EPIs</option>
+                        <option value="Ferramentas">Ferramentas</option>
+                        <option value="Matéria-Prima">Matéria-Prima</option>
+                        <option value="Químicos">Químicos</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="filterStatus" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Status do Estoque</label>
+                    <select id="filterStatus" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="All">Todos os Status</option>
+                        <option value="in_stock">Estoque</option>
+                        <option value="low_stock">Estoque Baixo</option>
+                        <option value="out_of_stock">Sem Estoque / Crítico</option>
+                    </select>
+                </div>
+
+                <div class="flex items-end">
+                    <button onclick="resetAllFilters()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-sm font-medium py-2 px-3 rounded-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i> Limpar Filtros
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+        <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[420px]">
+            <div class="px-5 py-3.5 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <div>
+                    Mostrando <span id="lblPageRange" class="font-bold text-slate-800">0-0</span> de <span id="lblTotalItems" class="font-bold text-slate-800">0</span> materiais encontrados
+                </div>
+                <div id="activeFiltersBadge" class="hidden sm:flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>Filtros ativos</span>
+                </div>
+            </div>
+
+            <div id="loadingIndicator" class="p-6 space-y-4">
+                <div class="animate-pulse space-y-4">
+                    <div class="h-10 bg-slate-200 rounded-md w-full"></div>
+                    <div class="h-12 bg-slate-100 rounded-md w-full"></div>
+                    <div class="h-12 bg-slate-100 rounded-md w-full"></div>
+                    <div class="h-12 bg-slate-100 rounded-md w-full"></div>
+                    <div class="h-12 bg-slate-100 rounded-md w-full"></div>
+                </div>
+            </div>
+
+            <div id="emptyState" class="hidden flex-1 flex flex-col items-center justify-center p-12 text-center">
+                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4 text-2xl">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <h3 class="text-base font-semibold text-slate-800">Nenhum material encontrado</h3>
+                <p class="text-slate-500 text-sm max-w-sm mt-1">Tente ajustar seus termos de pesquisa ou remover os filtros aplicados para encontrar o item desejado.</p>
+                <button onclick="resetAllFilters()" class="mt-4 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium text-sm rounded-lg transition">
+                    Redefinir Filtros
+                </button>
+            </div>
+
+            <div id="tableViewContainer" class="hidden overflow-x-auto flex-1 custom-scrollbar">
+                <table class="w-full text-left text-sm text-slate-700">
+                    <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] font-semibold tracking-wider border-b border-slate-200">
+                        <tr>
+                            <th class="py-3.5 px-4">Código / SKU</th>
+                            <th class="py-3.5 px-4">Descrição do Material</th>
+                            <th class="py-3.5 px-4">Categoria</th>
+                            <th class="py-3.5 px-4">Planta Principal</th>
+                            <th class="py-3.5 px-4 text-right">Qtd Disponível</th>
+                            <th class="py-3.5 px-4 text-center">Status</th>
+                            <th class="py-3.5 px-4 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="materialsTableBody" class="divide-y divide-slate-200">
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="gridViewContainer" class="hidden p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1"></div>
+
+            <div id="paginationContainer" class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-600 text-xs">Itens por página:</span>
+                    <select id="itemsPerPage" onchange="changeItemsPerPage()" class="bg-white border border-slate-300 text-slate-700 text-xs rounded-md p-1.5 focus:ring-blue-500">
+                        <option value="6">6</option>
+                        <option value="10" selected>10</option>
+                        <option value="15">15</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center space-x-1">
+                    <button id="btnPrevPage" onclick="prevPage()" class="px-3 py-1.5 border border-slate-300 text-slate-600 rounded-md hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition text-xs font-medium">
+                        <i class="fa-solid fa-chevron-left mr-1"></i> Anterior
+                    </button>
+
+                    <span id="pageNumbers" class="px-3 text-xs font-semibold text-slate-700">Página 1 de 1</span>
+
+                    <button id="btnNextPage" onclick="nextPage()" class="px-3 py-1.5 border border-slate-300 text-slate-600 rounded-md hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition text-xs font-medium">
+                        Próxima <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="materialDetailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden overflow-y-auto custom-scrollbar flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl my-8 overflow-hidden transform transition-all">
+            
+            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <span id="modalCategoryBadge" class="px-2.5 py-1 bg-blue-500/20 text-blue-300 text-xs font-semibold rounded-md border border-blue-500/30">
+                        Categoria
+                    </span>
+                    <h2 id="modalMaterialCode" class="text-xl font-bold tracking-tight text-white">SKU-00000</h2>
+                </div>
+
+                <button onclick="closeDetailModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                    <div class="lg:col-span-2 space-y-2">
+
+                        <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Descrição do Item</span>
+                        <h3 id="modalMaterialDescription" class="text-xl font-bold text-slate-900 leading-snug">--</h3>
+
+                        <div class="pt-2 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600">
+                            <div><strong class="text-slate-800">Fabricante:</strong> <span id="modalManufacturer">--</span></div>
+                            <div><strong class="text-slate-800">Unidade de Medida:</strong> <span id="modalUnit">--</span></div>
+                            <div><strong class="text-slate-800">Planta Principal:</strong> <span id="modalMainPlant">--</span></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-xs flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Localização Física</span>
+                            <i class="fa-solid fa-map-pin text-blue-600"></i>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                                <span class="block text-[10px] text-slate-400 font-semibold uppercase">Corredor</span>
+                                <span id="modalLocAisle" class="text-base font-bold text-slate-800">--</span>
+                            </div>
+
+                            <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                                <span class="block text-[10px] text-slate-400 font-semibold uppercase">Prateleira</span>
+                                <span id="modalLocShelf" class="text-base font-bold text-slate-800">--</span>
+                            </div>
+
+                            <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                                <span class="block text-[10px] text-slate-400 font-semibold uppercase">Gaveta/Box</span>
+                                <span id="modalLocBin" class="text-base font-bold text-slate-800">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-warehouse text-slate-500"></i> Disponibilidade Fictícia por Planta
+                        </h4>
+                        <span class="text-xs text-slate-500">Valores consolidados em tempo real</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-100 text-slate-600 uppercase font-bold text-[10px] border-b border-slate-200">
+                                <tr>
+                                    <th class="py-2.5 px-4">Planta / Unidade</th>
+                                    <th class="py-2.5 px-4 text-right">Estoque Físico</th>
+                                    <th class="py-2.5 px-4 text-right">Qtd Reservada</th>
+                                    <th class="py-2.5 px-4 text-right">Qtd Disponível</th>
+                                    <th class="py-2.5 px-4 text-right">Ponto de Pedido</th>
+                                    <th class="py-2.5 px-4 text-center">Situação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalPlantAvailabilityBody" class="divide-y divide-slate-200 bg-white">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-blue-600"></i> Evolução Temporal do Estoque (Últimos 6 Meses)
+                    </h4>
+
+                    <div class="h-48 w-full bg-white p-3 rounded-lg border border-slate-200">
+                        <canvas id="stockTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Histórico de Movimentações
+                        </h4>
+
+                        <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+                            <button onclick="filterHistory('All')" id="btnHistFilterAll" class="px-2.5 py-1 rounded-md font-medium text-blue-600 bg-white shadow-xs">Todos</button>
+                            <button onclick="filterHistory('Entrada')" id="btnHistFilterEntrada" class="px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900">Entrada</button>
+                            <button onclick="filterHistory('Saída')" id="btnHistFilterSaida" class="px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900">Saída</button>
+                            <button onclick="filterHistory('Transferência')" id="btnHistFilterTransferencia" class="px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900">Transf.</button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200 max-h-56 custom-scrollbar">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-100 text-slate-600 uppercase font-bold text-[10px] sticky top-0 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-2.5 px-3">Data / Hora</th>
+                                    <th class="py-2.5 px-3">Tipo</th>
+                                    <th class="py-2.5 px-3 text-right">Qtd</th>
+                                    <th class="py-2.5 px-3">Planta de Origem/Destino</th>
+                                    <th class="py-2.5 px-3">Responsável</th>
+                                    <th class="py-2.5 px-3">Observação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalHistoryBody" class="divide-y divide-slate-200 bg-white">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex items-center justify-between">
+                <button onclick="openNewMovementModal(currentSelectedMaterialId)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-4 py-2 rounded-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Registrar Nova Movimentação
+                </button>
+
+                <button onclick="closeDetailModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-medium px-4 py-2 rounded-lg transition">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="newMovementModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden overflow-y-auto flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden">
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-right-left text-blue-400"></i> Simular Nova Movimentação
+                </h3>
+
+                <button onclick="closeNewMovementModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="formMovement" onsubmit="submitMovement(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Material</label>
+                    <select id="movementMaterialSelect" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500"></select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tipo de Movimento</label>
+                        <select id="movementTypeSelect" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500">
+                            <option value="Entrada">Entrada (+)</option>
+                            <option value="Saída">Saída (-)</option>
+                            <option value="Transferência">Transferência</option>
+                            <option value="Reserva">Reserva</option>
+                            <option value="Ajuste">Ajuste de Inventário</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quantidade</label>
+                        <input type="number" id="movementQuantity" required min="1" value="10" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Planta Envolvida</label>
+                        <select id="movementPlantSelect" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500">
+                            <option value="SP">Planta SP - Matriz</option>
+                            <option value="RJ">Planta RJ - Fabril</option>
+                            <option value="MG">Planta MG - Logística</option>
+                            <option value="RS">Planta RS - Sul</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Usuário Resp.</label>
+                        <input type="text" id="movementUser" required value="Operador Sistema" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observação / Justificativa</label>
+                    <textarea id="movementNotes" rows="2" placeholder="Ex: Recebimento de NFe 4521 ou Ordem de Manutenção #12" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end space-x-2">
+                    <button type="button" onclick="closeNewMovementModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-xs font-medium hover:bg-slate-100 transition">Cancelar</button>
+                    <button type="submit" id="btnSubmitMovement" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-check"></i> Processar Movimentação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 ease-out pointer-events-none">
+        <div id="toastBg" class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 border border-slate-700">
+            <span id="toastIcon" class="text-emerald-400 text-lg"><i class="fa-solid fa-circle-check"></i></span>
+            <div>
+                <p id="toastTitle" class="text-xs font-bold">Sucesso</p>
+                <p id="toastMessage" class="text-xs text-slate-300">Operação realizada com sucesso</p>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
